@@ -4,10 +4,27 @@
 #+PROPERTY: header-args:emacs-lisp :tangle ./config.el :mkdirp yes
 
 * GNU Emacs configuration
-
+** Startup
 #+begin_src emacs-lisp
-  (setq user-full-name "Olivier Bonaldo"
-	user-mail-address "olibon.rs@gmail.com")
+  (setq user-full-name "Olivier"
+	user-mail-address "myolisns@gmail.com")
+#+end_src
+** XDG directory specification
+#+begin_src emacs-lisp
+  (defvar xdg-bin (getenv "XDG_BIN_HOME")
+    "The XDG bin base directory.")
+
+  (defvar xdg-cache (getenv "XDG_CACHE_HOME")
+    "The XDG cache base directory.")
+
+  (defvar xdg-config (getenv "XDG_CONFIG_HOME")
+    "The XDG config base directory.")
+
+  (defvar xdg-data (getenv "XDG_DATA_HOME")
+    "The XDG data base directory.")
+
+  (defvar xdg-lib (getenv "XDG_LIB_HOME")
+    "The XDG lib base directory.")
 #+end_src
 ** Server
 #+begin_src emacs-lisp
@@ -84,25 +101,28 @@ Boostrap =straight.el= as a package manager
 #+end_src
 ** Backups
 #+begin_src emacs-lisp
-  (setq backup-directory-alist `(("." . ,(concat user-emacs-directory "backups")))
-	  vc-make-backup-files t
-	  version-control t
-	  kept-old-versions 0
-	  kept-new-versions 10
-	  delete-old-versions t
-	  backup-by-copying t)
+  (setq auto-save-file-name-transforms
+        `((".*" ,(expand-file-name (format "%s/emacs/auto-save/" xdg-cache) t)))
+        backup-directory-alist `(("." . ,(expand-file-name (format "%s/emacs/backups/" xdg-data))))
+        vc-make-backup-files t
+        version-control t
+        kept-old-versions 0
+        kept-new-versions 10
+        delete-old-versions t
+        backup-by-copying t)
 #+end_src
 ** Customizations
 #+begin_src emacs-lisp
-  (setq custom-file (expand-file-name "custom-file.el" user-emacs-directory))
-  (load custom-file t)
+  (setq custom-file (expand-file-name ( format"%s/emacs/custom-file.el" xdg-data)))
+  (when (file-exists-p custom-file)
+    (load custom-file t))
 #+end_src
 ** History
 #+begin_src emacs-lisp
   (require 'savehist)
+  (setq savehist-file (expand-file-name (format "%s/emacs/history" xdg-cache)))
   (savehist-mode t)
 #+end_src
-
 ** Recent files
 #+begin_src emacs-lisp
   (require 'recentf)
@@ -114,7 +134,8 @@ Boostrap =straight.el= as a package manager
                              "/sudo:"
                              "/tmp/"
                              "~$"
-                             "COMMIT_EDITMSG"))
+                             "COMMIT_EDITMSG")
+        recentf-save-file (expand-file-name (format "%s/emacs/recentf" xdg-cache)))
   (recentf-mode 1)
 #+end_src
 ** Icons and Emojis
@@ -510,6 +531,10 @@ Doom-modeline
     (require 'dired-subtree)
     (define-key dired-mode-map (kbd "<tab>") 'dired-subtree-toggle))
 #+end_src
+** Documentation
+#+begin_src emacs-lisp
+  (straight-use-package 'helpful)
+#+end_src
 ** Highlight indent guides
 #+begin_src emacs-lisp
   (straight-use-package 'highlight-indent-guides)
@@ -530,6 +555,7 @@ Doom-modeline
         read-process-output-max (* 1024 1024)
         lsp-enable-indentation nil
         lsp-diagnostics-provider :flymake
+        lsp-session-file (expand-file-name (format "%s/emacs/lsp-session-v1"  xdg-data))
         lsp-keymap-prefix "C-x L")
 
   ;; to enable the lenses
@@ -871,8 +897,7 @@ Doom-modeline
   (add-to-list 'auto-mode-alist '("\\.css\\'") 'css-mode)
   (setq css-indent-offset 2)
 #+end_src
-*** Typescrip
-t
+*** Typescript
 #+begin_src emacs-lisp
   (straight-use-package 'typescript-mode)
 
@@ -883,6 +908,62 @@ t
 
   (setq typescript-indent-level 2)
 #+end_src
+** Spell Checker
+#+begin_src emacs-lisp
+  (straight-use-package 'ispell)
+
+  (defun my/switch-language ()
+         "Switch between the English and French for ispell, flyspell, and LanguageTool."
+         (interactive)
+         (let* ((current-dictionary ispell-current-dictionary)
+                (new-dictionary (if (string= current-dictionary "en_US") "fr_FR" "en_US")))
+           (ispell-change-dictionary new-dictionary)
+           (if (string= new-dictionary "fr_FR")
+               (progn
+                 (setq lsp-ltex-language "fr"))
+             (progn
+               (setq lsp-ltex-language "en-US")))
+           (flyspell-buffer)
+           (message "[✓] Dictionary switched to %s" new-dictionary)))
+
+  (setq ispell-hunspell-dict-paths-alist '(("en_US" "/usr/share/hunspell/en_US.aff")
+                                           ("fr_FR" "/usr/share/hunspell/fr_FR.aff")))
+  ;; Save words in the personal dictionary without asking.
+  (setq ispell-silently-savep t)
+  (setenv "LANG" "en_US")
+  (cond ((executable-find "hunspell")
+         (setq ispell-program-name "hunspell")
+         (setq ispell-local-dictionary-alist '(("en_US"
+                                                "[[:alpha:]]"
+                                                "[^[:alpha:]]"
+                                                "['’-]"
+                                                t
+                                                ("-d" "en_US" )
+                                                nil
+                                                utf-8)
+                                               ("fr_FR"
+                                                "[[:alpha:]ÀÂÇÈÉÊËÎÏÔÙÛÜàâçèéêëîïôùûü]"
+                                                "[^[:alpha:]ÀÂÇÈÉÊËÎÏÔÙÛÜàâçèéêëîïôùûü]"
+                                                "['’-]"
+                                                t
+                                                ("-d" "fr_FR")
+                                                nil
+                                                utf-8))))
+        ((executable-find "aspell")
+         (setq ispell-program-name "aspell")
+         (setq ispell-extra-args '("--sug-mode=ultra"))))
+  ;; Ignore file sections for spell checking.
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_align" . "#\\+end_align"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_align*" . "#\\+end_align*"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_equation" . "#\\+end_equation"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_equation*" . "#\\+end_equation*"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_example" . "#\\+end_example"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_labeling" . "#\\+end_labeling"))
+  (add-to-list 'ispell-skip-region-alist '("#\\+begin_src" . "#\\+end_src"))
+  (add-to-list 'ispell-skip-region-alist '("\\$" . "\\$"))
+  (add-to-list 'ispell-skip-region-alist '(org-property-drawer-re))
+  (add-to-list 'ispell-skip-region-alist '(":\\(PROPERTIES\\|LOGBOOK\\):" . ":END:"))
+#+end_src
 ** Terminal
 #+begin_src emacs-lisp
   (straight-use-package 'vterm)
@@ -892,7 +973,26 @@ t
 #+end_src
 ** Org-Mode
 #+begin_src emacs-lisp
-;;  (straight-use-package 'org-contrib)
+  (setq org-archive-location "~/Documents/Org/archives/%s::"
+        org-blank-before-new-entry '((heading . t)
+                                     (plain-list-item . t))
+        org-confirm-babel-evaluate nil
+        org-cycle-include-plain-lists 'integrate
+        org-ellipsis " ▾"
+        org-export-backends '(ascii beamer html icalendar latex man md org texinfo)
+        org-hide-emphasis-markers t
+        org-log-done 'time
+        org-log-into-drawer t
+        org-modules '(org-crypt
+                      org-habit
+                      org-mouse
+                      org-protocol
+                      org-tempo)
+        org-refile-use-cache nil
+        org-refile-use-outline-path nil
+        org-startup-with-inline-images t
+        org-use-effective-time t
+        org-yank-adjusted-subtrees t)
 #+end_src
 ** Bullets
 #+begin_src emacs-lisp
