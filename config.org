@@ -535,11 +535,13 @@ Doom-modeline
 #+begin_src emacs-lisp
   (straight-use-package 'helpful)
 #+end_src
-** Highlight indent guides
+** Indentations
 #+begin_src emacs-lisp
   (straight-use-package 'highlight-indent-guides)
-  (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+  (straight-use-package 'aggressive-indent)
 
+  (add-hook 'prog-mode-hook #'highlight-indent-guides-mode)
+  (setq aggressive-indent-comments-too t)
   (setq highlight-indent-guides-method 'character)
 #+end_src
 ** LSP
@@ -696,6 +698,25 @@ Doom-modeline
                               corfu-auto nil)
               (corfu-mode)))
 #+end_src
+** PDF
+#+begin_src emacs-lisp
+  (straight-use-package 'pdf-tools)
+
+  (pdf-tools-install :no-query)
+
+  (with-eval-after-load 'pdf-tools
+    (require 'pdf-view))
+
+  (setq pdf-view-display-size 'fit-page
+        pdf-view-resize-factor 1.1
+        pdf-view-use-unicode-ligther nil
+        pdf-view-use-scaling t)
+
+  (define-key pdf-view-mode-map (kbd "C-s") 'isearch-forward)
+  (define-key pdf-view-mode-map (kbd "d") 'pdf-annot-delete)
+  (define-key pdf-view-mode-map (kbd "h") 'pdf-annot-add-highlight-markup-annotation)
+  (define-key pdf-view-mode-map (kbd "t") 'pdf-annot-add-text-annotation)
+#+end_src
 ** Prog Modes
 *** Misc
 #+begin_src emacs-lisp
@@ -717,6 +738,14 @@ Doom-modeline
   ;; INI
   (straight-use-package 'ini-mode)
   (add-to-list 'auto-mode-alist '("\\.ini\\'" ) 'ini-mode)
+  ;; XML
+  (require 'nxml-mode)
+  (add-to-list 'auto-mode-alist '("\\.\\(xml\\|xsd\\|wsdl\\)\\'") 'nxml-mode)
+  (add-hook 'nxml-mode-hook #'lsp-deferred)
+  ;; YAML
+  (straight-use-package 'yaml-mode)
+  (add-to-list 'auto-mode-alist '("\\.\\(yaml\\|yml\\)\\'") 'yaml-mode)
+  (add-hook 'yaml-mode-hook #'lsp-deferred)
 #+end_src
 *** Web-Mode
 #+begin_src emacs-lisp
@@ -829,7 +858,7 @@ Doom-modeline
   (straight-use-package 'sly-asdf)
   (straight-use-package 'sly-quicklisp)
   (straight-use-package 'sly-repl-ansi-color)
-  (straight-use-package 'aggressive-indent)
+  
 
   (setq sly-symbol-completion-mode nil
         sly-lisp-implementations
@@ -843,7 +872,6 @@ Doom-modeline
     (require 'sly-asdf))
 
   (add-hook 'lisp-mode-hook #'sly-editing-mode)
-  (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
 #+end_src
 *** PlantUML
 #+begin_src emacs-lisp
@@ -998,4 +1026,36 @@ Doom-modeline
 #+begin_src emacs-lisp
   (straight-use-package 'org-bullets)
   (add-hook 'org-mode-hook #'org-bullets-mode)
+#+end_src
+** Browser
+#+begin_src emacs-lisp
+  (require 'browse-url)
+  (setq browse-url-browser-function 'browse-url-generic
+        browse-url-generic-program "qutebrowser")
+#+end_src
+** Rainbows
+#+begin_src emacs-lisp
+  (straight-use-package 'rainbow-mode)
+  (straight-use-package 'rainbow-delimiters)
+
+  (add-hook 'prog-mode-hook #'rainbow-mode)
+  (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
+#+end_src
+** Which-key
+#+begin_src emacs-lisp
+  (straight-use-package 'which-key)
+  (straight-use-package 'which-key-posframe)
+
+  (setq which-key-idle-delay 0.5)
+  (which-key-mode t)
+  (which-key-posframe-mode t)
+#+end_src
+** Snippets
+#+begin_src emacs-lisp
+  (straight-use-package 'yasnippet-snippets)
+  (straight-use-package 'yasnippet)
+  (straight-use-package 'react-snippets)
+
+  (with-eval-after-load 'yasnippet
+    (yasnippet-snippets-initialize t))
 #+end_src
